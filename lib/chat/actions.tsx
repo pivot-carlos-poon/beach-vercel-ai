@@ -27,17 +27,13 @@ import { PurchaseTickets } from '@/components/flights/purchase-ticket'
 import { CheckIcon, SpinnerIcon } from '@/components/ui/icons'
 import { format } from 'date-fns'
 import { streamText } from 'ai'
-import { google } from '@ai-sdk/google'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { z } from 'zod'
 import { ListHotels } from '@/components/hotels/list-hotels'
 import { Destinations } from '@/components/flights/destinations'
 import { Video } from '@/components/media/video'
 import { rateLimit } from './ratelimit'
-
-const genAI = new GoogleGenerativeAI(
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
-)
+import {openai} from "@ai-sdk/openai";
 
 async function describeImage(imageBase64: string) {
   'use server'
@@ -81,7 +77,7 @@ async function describeImage(imageBase64: string) {
       } else {
         const imageData = imageBase64.split(',')[1]
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' })
+        const model = openai("gpt-4o-mini")
         const prompt = 'List the books in this image.'
         const image = {
           inlineData: {
@@ -162,7 +158,7 @@ async function submitUserMessage(content: string) {
   ;(async () => {
     try {
       const result = await streamText({
-        model: google('models/gemini-1.5-flash'),
+        model: openai("gpt-4o-mini"),
         temperature: 0,
         tools: {
           showFlights: {
