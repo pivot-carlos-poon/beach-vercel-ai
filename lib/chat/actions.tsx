@@ -33,7 +33,22 @@ import { ListHotels } from '@/components/hotels/list-hotels'
 import { Destinations } from '@/components/flights/destinations'
 import { Video } from '@/components/media/video'
 import { rateLimit } from './ratelimit'
-import {openai} from "@ai-sdk/openai";
+import {createOpenAI, openai} from "@ai-sdk/openai";
+import cfenv from "cfenv"
+import "dotenv/config";
+
+
+const appEnv = cfenv.getAppEnv()
+const genaiService = appEnv.getService("genai")
+
+export const API_KEY = genaiService?.credentials.api_key || process.env.OPENAI_API_KEY || '';
+export const BASE_URL = genaiService?.credentials.api_base || "https://api.openai.com/v1";
+export const MODEL = genaiService?.credentials.model_name ?? "gpt-4o-mini";
+
+const openAi = createOpenAI({
+  baseURL: BASE_URL,
+  apiKey : API_KEY
+})
 
 async function describeImage(imageBase64: string) {
   'use server'
@@ -77,7 +92,7 @@ async function describeImage(imageBase64: string) {
       } else {
         const imageData = imageBase64.split(',')[1]
 
-        const model = openai("gpt-4o-mini")
+        const model = openAi(MODEL)
         const prompt = 'List the books in this image.'
         const image = {
           inlineData: {
