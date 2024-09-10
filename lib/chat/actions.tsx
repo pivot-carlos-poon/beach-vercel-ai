@@ -2,53 +2,56 @@
 
 /* eslint-disable jsx-a11y/alt-text */
 /* eslint-disable @next/next/no-img-element */
+'use server'
 import 'server-only'
 
-import {
-  createAI,
-  createStreamableUI,
-  getMutableAIState,
-  getAIState,
-  createStreamableValue
-} from 'ai/rsc'
+import {createAI, createStreamableUI, createStreamableValue, getAIState, getMutableAIState} from 'ai/rsc'
 
-import { BotCard, BotMessage } from '@/components/stocks'
+import {BotCard, BotMessage} from '@/components/stocks'
 
-import { nanoid, sleep } from '@/lib/utils'
-import { saveChat } from '@/app/actions'
-import { SpinnerMessage, UserMessage } from '@/components/stocks/message'
-import { Chat } from '../types'
-import { auth } from '@/auth'
-import { FlightStatus } from '@/components/flights/flight-status'
-import { SelectSeats } from '@/components/flights/select-seats'
-import { ListFlights } from '@/components/flights/list-flights'
-import { BoardingPass } from '@/components/flights/boarding-pass'
-import { PurchaseTickets } from '@/components/flights/purchase-ticket'
-import { CheckIcon, SpinnerIcon } from '@/components/ui/icons'
-import { format } from 'date-fns'
-import { streamText } from 'ai'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { z } from 'zod'
-import { ListHotels } from '@/components/hotels/list-hotels'
-import { Destinations } from '@/components/flights/destinations'
-import { Video } from '@/components/media/video'
-import { rateLimit } from './ratelimit'
+import {nanoid, sleep} from '@/lib/utils'
+import {saveChat} from '@/app/actions'
+import {SpinnerMessage, UserMessage} from '@/components/stocks/message'
+import {Chat} from '../types'
+import {auth} from '@/auth'
+import {FlightStatus} from '@/components/flights/flight-status'
+import {SelectSeats} from '@/components/flights/select-seats'
+import {ListFlights} from '@/components/flights/list-flights'
+import {BoardingPass} from '@/components/flights/boarding-pass'
+import {PurchaseTickets} from '@/components/flights/purchase-ticket'
+import {CheckIcon, SpinnerIcon} from '@/components/ui/icons'
+import {format} from 'date-fns'
+import {streamText} from 'ai'
+import {z} from 'zod'
+import {ListHotels} from '@/components/hotels/list-hotels'
+import {Destinations} from '@/components/flights/destinations'
+import {Video} from '@/components/media/video'
+import {rateLimit} from './ratelimit'
 import {createOpenAI, openai} from "@ai-sdk/openai";
-import cfenv from "cfenv"
-import "dotenv/config";
+const vcapVariables: VcapCred = parseEnv();
 
+interface VcapCred {
+  baseApiUrl : string,
+  apiKey : string,
+  model : string
+}
 
-const appEnv = cfenv.getAppEnv()
-const genaiService = appEnv.getService("genai")
-
-export const API_KEY = genaiService?.credentials.api_key || process.env.OPENAI_API_KEY || '';
-export const BASE_URL = genaiService?.credentials.api_base || "https://api.openai.com/v1";
-export const MODEL = genaiService?.credentials.model_name ?? "gpt-4o-mini";
+function parseEnv(): VcapCred {
+  const vcap = process.env.VCAP_SERVICES
+  const vcapObj = JSON.parse(vcap)
+  const credentials = vcapObj.genai[0].credentials
+  return {
+    baseApiUrl: credentials.api_base || "https://api.openai.com/v1",
+    apiKey: credentials.api_key || "no-key-set",
+    model: credentials.model_aliases[0] || "gpt-4o-mini"
+  }
+}
 
 const openAi = createOpenAI({
-  baseURL: BASE_URL,
-  apiKey : API_KEY
+  baseURL: vcapVariables.baseApiUrl,
+  apiKey : vcapVariables.apiKey
 })
+
 
 async function describeImage(imageBase64: string) {
   'use server'
@@ -92,7 +95,7 @@ async function describeImage(imageBase64: string) {
       } else {
         const imageData = imageBase64.split(',')[1]
 
-        const model = openAi(MODEL)
+        const model = openAi(vcapVariables.model)
         const prompt = 'List the books in this image.'
         const image = {
           inlineData: {
