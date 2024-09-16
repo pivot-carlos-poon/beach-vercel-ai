@@ -1,10 +1,12 @@
 ---
 applications:
   - name: gemini-chatbot
+    instances: 1
     memory: 1G
-    path: .next
+    disk_quota: 2G
+    path: .
     buildpack: nodejs_buildpack
-    command: node standalone/server.js
+    command: npm run dev
     env:
       AUTH_TRUST_HOST: true # Needed as we have not hooked up any OAuth providers
       KV_REST_API_READ_ONLY_TOKEN: "found in vercel"
